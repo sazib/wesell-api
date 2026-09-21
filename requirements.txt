@@ -1,0 +1,10 @@
+gunicorn==21.2.0
+django
+djangorestframework
+django-filter
+markdown
+pillow
+psycopg[binary]
+dj-database-url
+whitenoise
+redis
