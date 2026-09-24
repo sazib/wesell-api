@@ -1,0 +1,85 @@
+# Render Blueprint — WeSell API
+# Push to GitHub, then in Render: New → Blueprint → select this repo.
+# Creates: web service (Django + gunicorn), Render Postgres, Render Key Value (Redis).
+# Note: free Postgres instances expire after 30 days; free web/cache sleep on idle.
+
+services:
+  - type: web
+    name: wesell-api
+    runtime: python
+    plan: free
+    region: oregon
+    healthCheckPath: /health/
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
+    preDeployCommand: python manage.py migrate --noinput
+    startCommand: gunicorn api.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 60
+    disk:
+      name: media
+      mountPath: /opt/media
+      sizeGB: 1
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.14.3"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: "false"
+      - key: DJANGO_ALLOWED_HOSTS
+        value: "127.0.0.1,localhost,.onrender.com"
+      - key: CSRF_TRUSTED_ORIGINS
+        value: "https://*.onrender.com"
+      - key: DJANGO_MEDIA_ROOT
+        value: /opt/media
+      - key: DATABASE_URL
+        fromDatabase:
+          name: wesell-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: wesell-cache
+          property: connectionString
+      # Optional integrations — uncomment and fill after the file is live:
+      # - key: PAYMENT_GATEWAY
+      #   value: sandbox
+      # - key: RAZORPAY_KEY_ID
+      #   sync: false
+      # - key: RAZORPAY_KEY_SECRET
+      #   sync: false
+      # - key: STRIPE_PUBLISHABLE_KEY
+      #   sync: false
+      # - key: STRIPE_SECRET_KEY
+      #   sync: false
+      # - key: SSLCOMMERZ_STORE_ID
+      #   sync: false
+      # - key: SSLCOMMERZ_STORE_PASS
+      #   sync: false
+      # - key: WHATSAPP_NUMBER
+      #   sync: false
+      # - key: MESSENGER_PAGE_URL
+      #   sync: false
+      # - key: EMAIL_HOST
+      #   sync: false
+      # - key: EMAIL_HOST_USER
+      #   sync: false
+      # - key: EMAIL_HOST_PASSWORD
+      #   sync: false
+      # - key: PUBLIC_BASE_URL
+      #   value: https://wesell-api.onrender.com
+
+  - type: keyvalue
+    name: wesell-cache
+    plan: free
+    region: oregon
+    ipAllowList: []
+    maxmemoryPolicy: allkeys-lru
+    persistenceMode: "off"
+
+databases:
+  - name: wesell-db
+    plan: free
+    region: oregon
+    postgresMajorVersion: "17"
+    databaseName: wesell
+    user: wesell
+    ipAllowList: []

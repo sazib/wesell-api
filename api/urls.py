@@ -1,8 +1,16 @@
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
+from django.http import HttpRequest, JsonResponse
 from django.urls import include, path
+from django.views.decorators.http import require_GET
 from rest_framework.authtoken.views import obtain_auth_token
+
+
+@require_GET
+def health(_request: HttpRequest) -> JsonResponse:
+    return JsonResponse({"status": "ok"})
+
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -13,6 +21,7 @@ urlpatterns = [
     path("api/reviews/", include("reviews.urls")),
     path("api/offers/", include("offers.urls")),
     path("api/token/", obtain_auth_token, name="api_token"),
+    path("health/", health, name="health"),
 ]
 
 if settings.DEBUG:
