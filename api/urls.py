@@ -12,7 +12,20 @@ def health(_request: HttpRequest) -> JsonResponse:
     return JsonResponse({"status": "ok"})
 
 
+@require_GET
+def api_index(_request: HttpRequest) -> JsonResponse:
+    return JsonResponse(
+        {
+            "name": "WeSell API",
+            "health": "/health/",
+            "api": "/api/",
+            "admin": "/admin/",
+        }
+    )
+
+
 urlpatterns = [
+    path("", api_index, name="index"),
     path("admin/", admin.site.urls),
     path("api/auth/", include("accounts.urls")),
     path("api/", include("catalog.urls")),
