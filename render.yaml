@@ -1,7 +1,9 @@
 # Render Blueprint — WeSell API
 # Push to GitHub, then in Render: New → Blueprint → select this repo.
 # Creates: web service (Django + gunicorn), Render Postgres, Render Key Value (Redis).
-# Note: free Postgres instances expire after 30 days; free web/cache sleep on idle.
+# Free-tier notes: no disks, no pre-deploy commands → migrations run at startup,
+# media uploads are ephemeral (persist them via an external bucket or a paid disk).
+# Free Postgres instances expire after 30 days; free web/cache sleep on idle.
 
 services:
   - type: web
@@ -11,12 +13,7 @@ services:
     region: oregon
     healthCheckPath: /health/
     buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
-    preDeployCommand: python manage.py migrate --noinput
-    startCommand: gunicorn api.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 60
-    disk:
-      name: media
-      mountPath: /opt/media
-      sizeGB: 1
+    startCommand: python manage.py migrate --noinput && gunicorn api.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 60
     envVars:
       - key: PYTHON_VERSION
         value: "3.14.3"
@@ -28,8 +25,6 @@ services:
         value: "127.0.0.1,localhost,.onrender.com"
       - key: CSRF_TRUSTED_ORIGINS
         value: "https://*.onrender.com"
-      - key: DJANGO_MEDIA_ROOT
-        value: /opt/media
       - key: DATABASE_URL
         fromDatabase:
           name: wesell-db
